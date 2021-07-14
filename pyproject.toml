@@ -3,9 +3,12 @@ name = "atokaconn"
 version = "0.1.0"
 description = "A package that facilitates connections to and data extractions from the ATOKA API service."
 authors = ["guglielmo <guglielmo@openpolis.it>"]
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/openpolis/atokaconn/"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.6"
 requests = "^2.25.1"
 requests-toolbelt = "^0.9.1"
 Faker = "^8.10.1"
