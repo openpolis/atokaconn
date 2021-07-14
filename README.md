@@ -3,6 +3,8 @@
 [![License](https://img.shields.io/pypi/l/atokaconn.svg)](https://pypi.python.org/pypi/atokaconn)
 [![Downloads](https://pepy.tech/badge/atokaconn/month)](https://pepy.tech/project/atokaconn/month)
 
+[![Twitter Follow](https://img.shields.io/twitter/follow/openpolislab)](https://twitter.com/openpolislab)
+
 ![Tests Badge](https://op-badges.s3.eu-west-1.amazonaws.com/atokaconn/tests-badge.svg?2)
 ![Coverage Badge](https://op-badges.s3.eu-west-1.amazonaws.com/atokaconn/coverage-badge.svg?2)
 ![Flake8](https://op-badges.s3.eu-west-1.amazonaws.com/atokaconn/flake8-badge.svg?2)
