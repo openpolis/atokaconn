@@ -53,7 +53,6 @@ class AtokaConn(object):
             self.service_url, HTTPAdapter(max_retries=retries)
         )
 
-
     def get_person_from_tax_id(self, tax_id: str) -> dict:
         """get a single person from ATOKA API, from its tax_id
         raise Atoka exceptions if errors or no objects found
