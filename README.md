@@ -16,7 +16,7 @@ Camera di Commercio.
 
 An extensive introduction to these data's structure is available here: https://atoka.io/pages/en/data-structure/.
 
-The API reference is availabel here: https://developers.atoka.io/v2/.
+The API reference is available here: https://developers.atoka.io/v2/.
 
 ## Installation
 
@@ -34,18 +34,19 @@ Once a key has been obtained from ATOKA's service (you need to pay for this), th
     atoka_p = atoka_conn.get_person_from_tax_id(tax_id)
  
 ATOKA has an incredibly rich set of endpoints and filters, allowing a wide variety of usages 
-for their API. This package implements a very limited set of methods. 
+for their API. This package implements a **very limited set of public methods** that facilitate
+accessing only part of all available information. 
 
 See https://gitlab.com/spaziodati/atoka-cli for a go-based CLI implementation.
 
 See the Contributing section to increase coverage.
 
-### `get_person_from_tax_id`
+### get_person_from_tax_id
 Gets a single person, as a dict, from its tax_id. 
 Raises one of the Atoka exceptions if errors are present or no persons are found.
 see: https://developers.atoka.io/v2/people.html#people_taxIds
 
-### `search_person`
+### search_person
 Retrieves a single person from ATOKA API, starting from its anagraphical data.
 Raises Atoka exceptions if errors or no objects are found.
  
@@ -58,19 +59,19 @@ Raises Atoka exceptions if errors or no objects are found.
 
 TODO: this is not generic enough, as OPDM/Popolo concepts creeps in. Must be generalized.
 
-### `get_people_from_atoka_ids`
+### get_people_from_atoka_ids
 Returns a list of dictionaries, with persons corresponding to the passed atoka ids.
 
-### `get_people_from_tax_ids`
+### get_people_from_tax_ids
 Returns a list of dictionaries, with persons corresponding to the passed tax ids
 
-### `get_companies_from_atoka_ids`
+### get_companies_from_atoka_ids
 Returns a list of dictionaries, with companies corresponding to the passed atoka ids.
 
-### `get_companies_from_tax_ids`
+### get_companies_from_tax_ids
 Returns a list of dictionaries, with companies corresponding to the passed tax ids.
 
-### `get_roles_from_atoka_ids`
+### get_roles_from_atoka_ids
 Returns all people in companies with given atoka ids, used to extract people with roles in these companies
 
 Most of the above methods are based on the internal generic `get_items_from_ids`, which uses 
