@@ -17,6 +17,14 @@ class AtokaConn(object):
     Configuration values are secret and must be kept safe in environment variables.
 
     """
+    allowed_roles = \
+        "titolare firmatario,amministratore unico,consigliere,socio amministratore,socio accomandante," \
+        "socio,socio accomandatario,presidente consiglio amministrazione,socio unico,amministratore,titolare," \
+        "sindaco effettivo,vice presidente consiglio amministrazione,amministratore delegato,liquidatore," \
+        "sindaco supplente,socio di societa' in nome collettivo,consigliere delegato,presidente," \
+        "curatore fallimentare,presidente del collegio sindacale,vice presidente,legale rappresentante," \
+        "revisore dei conti,legale rappresentante di societa',institore,direttore generale"
+
     def __init__(
         self,
         service_url: str = 'https://api.atoka.io',
