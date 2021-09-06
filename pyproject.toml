@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "atokaconn"
-version = "0.1.3"
+version = "0.1.4"
 description = "A package that facilitates connections to and data extractions from the ATOKA API service."
 authors = ["guglielmo <guglielmo@openpolis.it>"]
 readme = "README.md"

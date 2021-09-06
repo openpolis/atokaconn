@@ -32,6 +32,7 @@ The package is hosted on pypi, and can be installed, for example using pip:
 
 Once a key has been obtained from ATOKA's service (you need to pay for this), then
 
+    from atokaconn import AtokaConn
     atoka_conn = AtokaConn(key=MYKEY)
     atoka_p = atoka_conn.get_person_from_tax_id(tax_id)
  
