@@ -101,6 +101,52 @@ class AtokaConn(object):
 
         return result['items'][0]
 
+    def search(
+        self, items_type: str, fields: str, query_params: dict,
+        limit: int = 10, offset: int = 0, ordering: str = 'birthDateDesc',
+        packages: str = None, verbose: bool = False
+    ) -> dict:
+        """Perform a _search on Atoka API, returning the result as a dict, or an AtokaObjectDoesNotExist exception
+        """
+        if not items_type:
+            raise AtokaException("Need to specify an item_type. Choose among people and companies.")
+        if items_type not in ['people', 'companies']:
+            raise AtokaException(f"Wrong type of items to _search ({items_type}). Choose among people and companies.")
+        params = {
+            'token': self.key,
+            'fields': fields,
+            'limit': limit, 'offset': offset, 'ordering': ordering,
+        }
+        if packages:
+            params['packages'] = packages
+        params.update(query_params)
+
+        try:
+            response = self.session.get(
+                f"{self.service_url}/{self.version}/{items_type}",
+                params=params
+            )
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError, RetryError):
+            raise AtokaTimeoutException()
+
+        if not response.ok:
+            raise AtokaResponseError(
+                f"{response.status_code} - {response.reason} - {json.loads(response.text)['message']}"
+            )
+
+        params.pop('token')
+
+        result = response.json()
+        if result['meta']['count'] == 0:
+            raise AtokaObjectDoesNotExist(
+                "Could not find any person with parameters {0} in Atoka.".format(params)
+            )
+
+        if verbose:
+            result['request'] = response.request
+
+        return result
+
     def search_person(self, person: object) -> dict:
         """get a single person from ATOKA API, from its anagraphical
         raise Atoka exceptions if errors or no objects found
@@ -152,16 +198,10 @@ class AtokaConn(object):
 
         return result['items'][0]
 
-    def post_requests(self, requests_list, api_endpoint, **kwargs) -> dict:
+    def post_requests(self, requests_list, api_endpoint, verbose: bool = False, **kwargs) -> dict:
+        """Build batch API request from list, post and return json response
         """
 
-        :param requests_list:
-        :param api_endpoint:
-        :param kwargs:
-        :return:
-        """
-
-        # build batch API request from list, post and return json response
         with StringIO() as file_io:
 
             for r in requests_list:
@@ -177,8 +217,6 @@ class AtokaConn(object):
             )
 
             try:
-                if self.logger:
-                    self.logger.debug(f"sending request to {api_endpoint} for {len(requests_list)} items")
                 response = self.session.post(
                     api_endpoint,
                     params={'token': self.key},
@@ -195,59 +233,117 @@ class AtokaConn(object):
             if not response.ok:
                 raise AtokaResponseError(response.reason)
 
-            return response.json()
+            portable_response = response.json()
+            response.request.body.__getattribute__('fields').pop('batch')
+            body = response.request.body.__getattribute__('fields')
+            body['batch_requests'] = requests_list
 
-    def extend_response(self, response, ids_field_name, api_endpoint, **kwargs) -> list:
+            if verbose:
+                portable_response['request'] = {
+                    'method': response.request.method,
+                    'body': body,
+                    'headers': dict(response.request.headers),
+                    'url': response.request.url
+                }
+            return portable_response
+
+    def extend_response(
+        self,
+        responses: list,
+        ids_field_name: str,
+        api_endpoint: str,
+        verbose: bool = False,
+        **kwargs
+    ) -> dict:
+        """Extend the response whenever meta.count indicates that there are more than 50 items
         """
+        #     total_response['meta']['count'] += json_response['meta']['count']
+        #     total_response['meta']['error'] += json_response['meta']['error']
+        #     total_response['meta']['success'] += json_response['meta']['success']
+        #     total_response['responses'].update(json_response['responses'])
 
-        :param response:
-        :param ids_field_name:
-        :param api_endpoint:
-        :return:
-        """
-        complete_response = []
-        for req_id, r in response.get('responses', {}).items():
+        complete_response = {
+            'items': [],
+            'meta': {
+                'count': 0
+            },
+        }
+        if verbose:
+            complete_response['detailed_responses'] = responses
 
-            complete_response.extend(r['items'])
+        for response in responses:
+            for req_id, r in response.get('responses', {}).items():
 
-            # if more than 50 results, get the others
-            if r['meta']['count'] > 50:
+                complete_response['items'].extend(r['items'])
 
-                # build requests_list
-                requests_list = [
-                    json.dumps(
-                        {
-                            "reqId": "r{0:05d}".format(offset),
-                            ids_field_name: req_id,
-                            'offset': offset
-                        }
-                    ) for offset in range(50, r['meta']['count'], 50)
-                ]
+                # if more than 50 results, get the others
+                if r['meta']['count'] > 50:
 
-                try:
-                    extended_json_response = self.post_requests(requests_list, api_endpoint=api_endpoint, **kwargs)
-                    for _r in extended_json_response.get('responses', {}).values():
-                        complete_response.extend(_r['items'])
-                except Exception as e:
-                    if self.logger:
-                        self.logger.warning(f"{e}. Skipping")
+                    # build requests_list
+                    requests_list = [
+                        json.dumps(
+                            {
+                                "reqId": "r{0:05d}".format(offset),
+                                ids_field_name: req_id,
+                                'offset': offset
+                            }
+                        ) for offset in range(50, r['meta']['count'], 50)
+                    ]
+
+                    try:
+                        extended_json_response = self.post_requests(requests_list, api_endpoint=api_endpoint, **kwargs)
+                        for _r in extended_json_response.get('responses', {}).values():
+                            complete_response['items'].extend(_r['items'])
+                            if verbose:
+                                complete_response['detailed_responses'].append(extended_json_response)
+                    except Exception as e:
+                        if self.logger:
+                            self.logger.warning(f"{e}. Skipping")
                         continue
 
+        complete_response['meta']['count'] = len(complete_response['items'])
         return complete_response
 
     def get_items_from_ids(
-        self, ids: list, item_type: str, ids_field_name: str = 'ids', batch_size: int = 50, **kwargs
+        self, ids: list, item_type: str, ids_field_name: str = 'ids',
+        batch_size: int = 50, verbose: bool = False, **kwargs
     ) -> list:
-        """Transform a request for a list of ids larger than batch_size,
-         to a batch request of enough rows with a limit of batch_size, so that all results
-         can be returned.
+        """The response is transformed into a list and returned (back-compatibility)
 
-        Results are composed and returned as a list of dicts.
+        Results are returned as a list of dictionaries.
 
         :param ids: list
         :param item_type: str
         :param ids_field_name: ids, tax_ids
         :param batch_size: size of the number of ids searched by row of the batch IO
+        :param verbose: whether to add a request property to the response, mostly for debugging purposes
+        :param kwargs: - more atoka parameters for filtering results
+            (ex: packages=base,shares, active='true', ccia='*')
+        :return: results as a list of dicts
+        """
+        response = self.get_response_from_ids(
+            ids, item_type, ids_field_name=ids_field_name,
+            batch_size=batch_size, verbose=verbose,
+            **kwargs
+        )
+        return response['items']
+
+    def get_response_from_ids(
+        self, ids: list, item_type: str, ids_field_name: str = 'ids',
+        verbose: bool = False,
+        batch_size: int = 50, **kwargs
+    ) -> dict:
+        """Transform a request for a list of ids larger than batch_size,
+        to a batch request of enough rows with a limit of batch_size, so that all results
+        can be returned.
+
+        Results are composed and returned as a response dict
+
+        :param ids: list
+        :param item_type: str
+        :param ids_field_name: ids, tax_ids
+        :param batch_size: size of the number of ids searched by row of the batch IO
+        :param verbose: whether to add a request property to the response, mostly for debugging purposes
         :param kwargs: - more atoka parameters for filtering results
             (ex: packages=base,shares, active='true', ccia='*')
         :return: results as a list of dicts
@@ -290,24 +386,19 @@ class AtokaConn(object):
             r for r in chunks(requests_list, self.max_batch_file_lines)
         ]
 
-        total_response = {}
+        responses = []
         for gr in grouped_requests:
             try:
-                json_response = self.post_requests(gr, api_endpoint=api_endpoint, **kwargs)
-                if total_response == {}:
-                    total_response = json_response
-                else:
-                    total_response['meta']['count'] += json_response['meta']['count']
-                    total_response['meta']['error'] += json_response['meta']['error']
-                    total_response['meta']['success'] += json_response['meta']['success']
-                    total_response['responses'].update(json_response['responses'])
+                json_response = self.post_requests(gr, api_endpoint=api_endpoint, verbose=verbose, **kwargs)
+                responses.append(json_response)
             except Exception as e:
                 if self.logger:
                     self.logger.warning(f"{e}. Skipping")
-                    continue
+                continue
 
         complete_response = self.extend_response(
-            total_response, ids_field_name=ids_field_name, api_endpoint=api_endpoint, **kwargs
+            responses, ids_field_name=ids_field_name, api_endpoint=api_endpoint,
+            verbose=verbose, **kwargs
         )
 
         return complete_response
