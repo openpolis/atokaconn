@@ -359,7 +359,12 @@ class AtokaConn(object):
             raise AtokaException("item_type must take one of these values: <companies>, <people>")
 
         if len(ids) == 0:
-            return []
+            return {
+                'items': [],
+                'meta': {
+                    'count': 0
+                },
+            }
 
         api_endpoint = "{0}/{1}/{2}/".format(
             self.service_url, self.version, item_type
