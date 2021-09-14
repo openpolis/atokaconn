@@ -234,17 +234,25 @@ class AtokaConn(object):
                 raise AtokaResponseError(response.reason)
 
             portable_response = response.json()
-            response.request.body.__getattribute__('fields').pop('batch')
-            body = response.request.body.__getattribute__('fields')
-            body['batch_requests'] = requests_list
+
+            # tests responses are mocked and do not have request attributes
+            # this check avoids tests to fail
+            if hasattr(response, 'request'):
+                response.request.body.__getattribute__('fields').pop('batch')
+                body = response.request.body.__getattribute__('fields')
+                body['batch_requests'] = requests_list
 
             if verbose:
-                portable_response['request'] = {
-                    'method': response.request.method,
-                    'body': body,
-                    'headers': dict(response.request.headers),
-                    'url': response.request.url
-                }
+                if hasattr(response, 'request'):
+                    portable_response['request'] = {
+                        'method': response.request.method,
+                        'body': body,
+                        'headers': dict(response.request.headers),
+                        'url': response.request.url
+                    }
+                else:
+                    portable_response['request'] = {}
+
             return portable_response
 
     def extend_response(
