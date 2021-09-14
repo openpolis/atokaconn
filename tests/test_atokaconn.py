@@ -14,7 +14,7 @@ from tests.mocked_responses import get_void_response, get_person_ok, get_person_
 
 
 def test_version():
-    assert __version__ == '0.1.6'
+    assert __version__ == '0.1.7'
 
 
 faker = Factory.create("it_IT")  # a factory to create fake data for tests
