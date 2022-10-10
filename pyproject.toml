@@ -23,7 +23,6 @@ factory-boy = "^3.2.0"
 flake8 = "^3.9.2"
 coverage = "^5.5"
 genbadge = {version = "^1.0.4", extras = ["all"]}
-typer-cli = "^0.0.12"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
